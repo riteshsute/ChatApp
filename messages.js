@@ -18,10 +18,22 @@ function displayMessages(messages) {
   messages.forEach((message) => {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
-    messageElement.innerHTML = `<p>${message.message}</p>`;
+
+    const senderElement = document.createElement('div');
+    senderElement.classList.add('message-sender');
+    senderElement.textContent = message.senderName;
+
+    const contentElement = document.createElement('div');
+    contentElement.classList.add('message-content');
+    contentElement.textContent = message.message;
+
+    messageElement.appendChild(senderElement);
+    messageElement.appendChild(contentElement);
+
     chatMessages.appendChild(messageElement);
   });
 }
+
 
 function UserChats(event) {
   event.preventDefault();
@@ -106,3 +118,13 @@ setTimeout(() => {
   addUser('Charlie');
 }, 3000);
 
+function startMessageUpdate() {
+  setInterval(() => {
+    updateChatWindow();
+  }, 1000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  updateChatWindow();
+  startMessageUpdate();
+});
