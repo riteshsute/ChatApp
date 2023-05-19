@@ -1,4 +1,3 @@
-
 function getUserInfoFromToken() {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -31,14 +30,37 @@ function displayMessages(messages) {
     messageElement.appendChild(contentElement);
 
     chatMessages.appendChild(messageElement);
+
+    addMessageToStorage(message); // Store message in local storage
   });
 }
 
+function addMessageToStorage(message) {
+  let messages = JSON.parse(localStorage.getItem('messages')) || [];
+
+  // Remove the oldest chat if the limit is reached
+  if (messages.length >= 10) {
+    messages.shift(); // Remove the first (oldest) chat
+  }
+
+  messages.push(message);
+  localStorage.setItem('messages', JSON.stringify(messages));
+}
+
+function getMessagesFromStorage() {
+  const messages = localStorage.getItem('messages');
+  return messages ? JSON.parse(messages) : [];
+}
 
 function UserChats(event) {
   event.preventDefault();
   const message = event.target.chatIn.value;
-  const { userId } = getUserInfoFromToken();
+  const userInfo = getUserInfoFromToken();
+  if (!userInfo) {
+    console.log('User info is not available');
+    return;
+  }
+  const { userId } = userInfo;
   const obj = {
     message,
     userId
@@ -55,22 +77,40 @@ function UserChats(event) {
 }
 
 const updateChatWindow = () => {
+  const userInfo = getUserInfoFromToken();
+  if (!userInfo || !userInfo.userId || !userInfo.name) {
+    console.log('User info is not available');
+    return;
+  }
+  const { userId, name } = userInfo;
+  const obj = {
+    userId
+  };
   axios
-    .get('http://localhost:3000/ChatApp/getMessages')
+    .get('http://localhost:3000/ChatApp/getMessages', { params: obj })
     .then((response) => {
+      console.log(response, "LLLLLL")
       const { allMessages } = response.data;
-      displayMessages(allMessages);
+      console.log(response.data)
+      console.log(allMessages)
+      displayMessages(allMessages); // Display messages from the server
+      displayMessages(getMessagesFromStorage()); // Display messages from local storage
+      if (!users.includes(name)) {
+        addUser(name); // Add user to the user list if not already present
+      }
+      updateUserList();
     })
     .catch((error) => {
       console.log(error);
     });
 };
 
-
-window.addEventListener('DOMContentLoaded', updateChatWindow);
+function getLastReceivedMessageId() {
+  const lastMessageId = localStorage.getItem('lastMessageId');
+  return lastMessageId ? parseInt(lastMessageId) : 0;
+}
 
 const users = [];
-
 
 function updateUserList() {
   const userList = document.getElementById('user-list');
@@ -78,25 +118,21 @@ function updateUserList() {
 
   userList.innerHTML = '';
 
- 
   users.forEach((user) => {
     const li = document.createElement('li');
     li.textContent = user;
     userList.appendChild(li);
   });
 
-
   const countText =
     users.length === 1 ? '1 user online' : `${users.length} users online`;
   userCount.textContent = countText;
 }
 
-
 function addUser(username) {
   users.push(username);
   updateUserList();
 }
-
 
 function removeUser(username) {
   const index = users.indexOf(username);
@@ -106,25 +142,18 @@ function removeUser(username) {
   }
 }
 
-
-const { name } = getUserInfoFromToken();
-
-if (name) {
-  addUser(name);
+const userInfo = getUserInfoFromToken();
+if (userInfo && userInfo.name) {
+  addUser(userInfo.name);
 }
-
-
-setTimeout(() => {
-  addUser('Charlie');
-}, 3000);
 
 function startMessageUpdate() {
-  setInterval(() => {
-    updateChatWindow();
-  }, 1000);
-}
+    setInterval(() => {
+      updateChatWindow();
+    }, 1000);
+  }
 
 window.addEventListener('DOMContentLoaded', () => {
   updateChatWindow();
-  startMessageUpdate();
+  // startMessageUpdate();
 });
